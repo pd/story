@@ -1,12 +1,50 @@
+require 'optparse'
+
+class StoryCommand
+  class OptionParser < ::OptionParser
+    attr_reader :options
+
+    OPTIONS = {
+      :rails => ['-R', '--rails', 'Run stories as type RailsStory'],
+      :global_steps => ['-g', '--global-steps STEPS', 'Comma separated list of step groups to always include'],
+      :steps => ['-s', '--steps-path PATH', 'Add a path to the list of directories to load step groups from']
+    }
+
+    def initialize
+      super()
+
+      @options = Hash.new
+
+      self.banner = 'Usage: story [options] (DIR|FILE|GLOB)'
+      self.separator ''
+
+      on(*OPTIONS[:rails]) { @options[:rails] = true }
+      on(*OPTIONS[:global_steps]) do |names|
+        @options[:global_steps] ||= []
+        @options[:global_steps] += names.split(',').map { |x| x.strip }
+      end
+      on(*OPTIONS[:steps]) do |path|
+        @options[:steps_path] ||= []
+        @options[:steps_path] << path
+      end
+    end
+  end
+end
+
 class StoryCommand
   ROOT_PATH = Dir.pwd
 
-  STORIES_PATH        = "#{ROOT_PATH}/stories/stories"
-  STEP_MATCHERS_PATHS = ["#{ROOT_PATH}/stories/steps"]
-  HELPER_PATH         = "#{ROOT_PATH}/stories/helper"
+  STORIES_PATH = "#{ROOT_PATH}/stories/stories"
+  STEPS_PATHS  = ["#{ROOT_PATH}/stories/steps"]
+  HELPER_PATH  = "#{ROOT_PATH}/stories/helper"
 
   def initialize(args)
     @args = args
+    @option_parser = OptionParser.new
+    @option_parser.order!(@args)
+    @options = @option_parser.options
+    @options[:steps_path] ||= []
+    @options[:steps_path] += STEPS_PATHS
   end
 
   def run
@@ -33,6 +71,10 @@ class StoryCommand
     return char
   end
 
+  def using_rails?
+    @options[:rails]
+  end
+
   def clean_story_paths(paths)
     paths = paths.map { |path| File.expand_path(path) }
     paths.map! { |path| path.gsub(/\.story$/, "") }
@@ -50,7 +92,7 @@ class StoryCommand
 
     steps = steps_for_story(lines, story_name)
     files = steps.map do |step|
-      STEP_MATCHERS_PATHS.map { |path| "#{path}/#{step}.rb" }
+      @options[:steps_path].map { |path| "#{path}/#{step}.rb" }
     end.flatten.compact
     files.select { |file| File.exist?(file) }.each { |file| require file }
 
@@ -59,11 +101,12 @@ class StoryCommand
 
   def steps_for_story(lines, story_name)
     steps  = [story_name, story_name.to_s.split('/')]
-    steps += %w(generic common)
+    steps += @options[:global_steps]
     if lines.first =~ /^# \+?steps: /
       steps << lines.first.gsub(/^# \+?steps: /, '').split(',').map { |x| x.strip }
     end
-    steps.flatten
+    steps = steps.uniq.flatten
+    steps += steps.map { |step| step.to_sym }
   end
 
   def steps_for_story_name(story_name)
@@ -78,8 +121,14 @@ class StoryCommand
     tempfile.close
 
     steps += steps.map { |step| step.to_sym }
-    with_steps_for(*steps) do
-      run tempfile.path #, :type => RailsStory
+    if using_rails?
+      with_steps_for(*steps) do
+        run tempfile.path, :type => RailsStory
+      end
+    else
+      with_steps_for(*steps) do
+        run tempfile.path
+      end
     end
   end
 
