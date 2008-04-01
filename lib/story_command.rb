@@ -7,7 +7,8 @@ class StoryCommand
     OPTIONS = {
       :rails => ['-R', '--rails', 'Run stories as type RailsStory'],
       :global_steps => ['-g', '--global-steps STEPS', 'Comma separated list of step groups to always include'],
-      :steps => ['-s', '--steps-path PATH', 'Add a path to the list of directories to load step groups from']
+      :steps => ['-s', '--steps-path PATH', 'Add a path to the list of directories to load step groups from'],
+      :options_file => ['-O', '--options PATH', 'Read options from a file']
     }
 
     def default_options
@@ -34,6 +35,20 @@ class StoryCommand
         @options[:steps_path] ||= []
         @options[:steps_path] << path
       end
+      on(*OPTIONS[:options_file]) do |path|
+        parse_options_file(path)
+      end
+    end
+
+    def order!(argv, &blk)
+      @argv = argv
+      super(@argv)
+      @options
+    end
+
+    def parse_options_file(options_file)
+      args = IO.readlines(options_file).map { |l| l.chomp }
+      @argv.unshift(*args)
     end
   end
 end
@@ -48,6 +63,8 @@ class StoryCommand
   HELPER_PATH  = "#{ROOT_PATH}/stories/helper"
 
   def initialize(args)
+    args = args.dup
+    args.unshift('-O', "#{ROOT_PATH}/stories/story.opts") if File.exist?("#{ROOT_PATH}/stories/story.opts")
     @options, @args = parse_arguments(args)
     options[:steps_path] += STEPS_PATHS
   end
