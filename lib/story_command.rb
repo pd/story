@@ -54,19 +54,37 @@ class StoryCommand
 end
 
 class StoryCommand
+  attr_reader :project_root
   attr_reader :options
 
-  ROOT_PATH = Dir.pwd
+  def initialize(args, project_root = nil)
+    @project_root = File.expand_path(project_root || Dir.pwd)
 
-  STORIES_PATH = "#{ROOT_PATH}/stories/stories"
-  STEPS_PATHS  = ["#{ROOT_PATH}/stories/steps"]
-  HELPER_PATH  = "#{ROOT_PATH}/stories/helper"
-
-  def initialize(args)
     args = args.dup
-    args.unshift('-O', "#{ROOT_PATH}/stories/story.opts") if File.exist?("#{ROOT_PATH}/stories/story.opts")
+    args.unshift('-O', default_opts_path) if File.exist?(default_opts_path)
+
     @options, @args = parse_arguments(args)
-    options[:steps_path] += STEPS_PATHS
+    options[:steps_path] << step_store
+  end
+
+  def story_root
+    File.join(project_root, 'stories')
+  end
+
+  def step_store
+    File.join(story_root, 'steps')
+  end
+
+  def story_store
+    File.join(story_root, 'stories')
+  end
+
+  def story_helper
+    File.join(story_root, 'helper')
+  end
+
+  def default_opts_path
+    File.join(story_root, 'story.opts')
   end
 
   def run
@@ -80,7 +98,7 @@ class StoryCommand
   end
 
   def all_story_files
-    Dir["#{STORIES_PATH}/**/*.story"].uniq
+    Dir["#{story_store}/**/*.story"].uniq
   end
 
   def using_stdin?
@@ -100,17 +118,17 @@ class StoryCommand
   def clean_story_paths(paths)
     paths = paths.map { |path| File.expand_path(path) }
     paths.map! { |path| path.gsub(/\.story$/, "") }
-    paths.map! { |path| path.gsub(/#{STORIES_PATH}\//, "") }
+    paths.map! { |path| path.gsub(/#{story_store}\//, "") }
   end
 
   def run_story_files(stories)
     clean_story_paths(stories).each do |story|
-      setup_and_run_story(File.readlines("#{STORIES_PATH}/#{story}.story"), story)
+      setup_and_run_story(File.readlines("#{story_store}/#{story}.story"), story)
     end
   end
 
   def setup_and_run_story(lines, story_name = nil)
-    require HELPER_PATH
+    require(story_helper)
 
     steps = steps_for_story(lines, story_name)
     files = steps.map do |step|
