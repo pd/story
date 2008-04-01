@@ -1,0 +1,59 @@
+= story
+
+This project provides an executable, named +story+, that can be
+used to run suites of rspec plain text user stories.
+
+From your project root, lay out your plain text stories like so:
+
+  stories/stories/feature/topic.story
+
+Given that path, this story runner will automatically provide it
+with the following step groups:
+
+  feature, topic, feature/topic
+
+If these step groups are defined within a file loaded by your
+story helper file (stories/helper.rb), they will automatically be
+included and work as expected.
+
+
+== Command line usage
+
+Command line arguments include:
+
+  -R: run stories as type RailsStory
+  -g: name global step groups
+  -s: add additional paths from which steps might be loaded
+  -O: specify a .opts file to load command line arguments from
+  -h: display help
+
+
+== Specifying required steps inside the story
+
+As the first line of a .story file, you can specify steps to be loaded in
+addition to those deduced from its pathname:
+
+  # +steps: auth, data creation
+
+When run, this story will expect to have step groups named 'auth' and
+'data creation' available in the environment.
+
+
+== Configuration file
+
+If the file stories/story.opts is present, or another file was specified
+with the command line option -O, then options are loaded from the file
+in the same manner as spec/spec.opts.
+
+An example story.opts for a Rails project might be:
+
+  --rails
+  --global-steps
+  auth, webrat
+
+
+== Credits
+
+Most of the file is still the original code written by Bryan Helmkamp
+and posted to the rspec-users mailing list. I've done little more than
+add some options.
