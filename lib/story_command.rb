@@ -10,10 +10,17 @@ class StoryCommand
       :steps => ['-s', '--steps-path PATH', 'Add a path to the list of directories to load step groups from']
     }
 
+    def default_options
+      { :rails => false,
+        :steps_path => ["#{Dir.pwd}/stories/steps"],
+        :global_steps => []
+      }
+    end
+
     def initialize
       super()
 
-      @options = Hash.new
+      @options = default_options
 
       self.banner = 'Usage: story [options] (DIR|FILE|GLOB)'
       self.separator ''
@@ -32,6 +39,8 @@ class StoryCommand
 end
 
 class StoryCommand
+  attr_reader :options
+
   ROOT_PATH = Dir.pwd
 
   STORIES_PATH = "#{ROOT_PATH}/stories/stories"
@@ -39,12 +48,8 @@ class StoryCommand
   HELPER_PATH  = "#{ROOT_PATH}/stories/helper"
 
   def initialize(args)
-    @args = args
-    @option_parser = OptionParser.new
-    @option_parser.order!(@args)
-    @options = @option_parser.options
-    @options[:steps_path] ||= []
-    @options[:steps_path] += STEPS_PATHS
+    @options, @args = parse_arguments(args)
+    options[:steps_path] += STEPS_PATHS
   end
 
   def run
@@ -72,7 +77,7 @@ class StoryCommand
   end
 
   def using_rails?
-    @options[:rails]
+    options[:rails]
   end
 
   def clean_story_paths(paths)
@@ -92,7 +97,7 @@ class StoryCommand
 
     steps = steps_for_story(lines, story_name)
     files = steps.map do |step|
-      @options[:steps_path].map { |path| "#{path}/#{step}.rb" }
+      options[:steps_path].map { |path| "#{path}/#{step}.rb" }
     end.flatten.compact
     files.select { |file| File.exist?(file) }.each { |file| require file }
 
@@ -101,7 +106,7 @@ class StoryCommand
 
   def steps_for_story(lines, story_name)
     steps  = [story_name, story_name.to_s.split('/')]
-    steps += @options[:global_steps]
+    steps += options[:global_steps]
     if lines.first =~ /^# \+?steps: /
       steps << lines.first.gsub(/^# \+?steps: /, '').split(',').map { |x| x.strip }
     end
@@ -131,5 +136,12 @@ class StoryCommand
       end
     end
   end
+
+  private
+    def parse_arguments(args)
+      parser = OptionParser.new
+      parser.order!(args)
+      [parser.options, args]
+    end
 
 end
