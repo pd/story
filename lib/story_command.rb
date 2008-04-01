@@ -5,17 +5,17 @@ class StoryCommand
   STEP_MATCHERS_PATHS = ["#{ROOT_PATH}/stories/steps"]
   HELPER_PATH         = "#{ROOT_PATH}/stories/helper"
 
-  def self.run
-    self.new.run
+  def initialize(args)
+    @args = args
   end
 
   def run
-    if ARGV.empty? && first_char = using_stdin?
+    if @args.empty? && first_char = using_stdin?
       setup_and_run_story((first_char + STDIN.read).split("\n"))
-    elsif ARGV.empty?
+    elsif @args.empty?
       run_story_files(all_story_files)
     else
-      run_story_files(ARGV)
+      run_story_files(@args)
     end
   end
 
