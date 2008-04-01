@@ -115,8 +115,12 @@ class StoryCommand
     options[:rails]
   end
 
+  # what's the point of this?
+  # we then go *back* through and reconstruct the paths later, possibly incorrectly.
   def clean_story_paths(paths)
     paths = paths.map { |path| File.expand_path(path) }
+    paths.map! { |path| File.directory?(path) ? Dir.glob("#{path}/**/*.story") : path }
+    paths.flatten!
     paths.map! { |path| path.gsub(/\.story$/, "") }
     paths.map! { |path| path.gsub(/#{story_store}\//, "") }
   end
