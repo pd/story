@@ -131,10 +131,6 @@ class StoryCommand
     steps += steps.map { |step| step.to_sym }
   end
 
-  def steps_for_story_name(story_name)
-    [story_name, story_name.to_s.split('/')].flatten
-  end
-
   def run_story(lines, steps)
     tempfile = Tempfile.new("story")
     lines.each do |line|
