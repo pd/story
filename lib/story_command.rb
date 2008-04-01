@@ -161,14 +161,9 @@ class StoryCommand
     tempfile.close
 
     steps += steps.map { |step| step.to_sym }
-    if using_rails?
-      with_steps_for(*steps) do
-        run tempfile.path, :type => RailsStory
-      end
-    else
-      with_steps_for(*steps) do
-        run tempfile.path
-      end
+    story_type = using_rails? ? RailsStory : nil
+    with_steps_for(*steps) do
+      run tempfile.path, :type => story_type
     end
   end
 
