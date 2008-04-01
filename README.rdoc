@@ -3,18 +3,33 @@
 This project provides an executable, named +story+, that can be
 used to run suites of rspec plain text user stories.
 
-From your project root, lay out your plain text stories like so:
+The command line runner expects a project layout like so:
 
+  stories/stories/logging_in.story
+  stories/stories/feature.story
   stories/stories/feature/topic.story
 
-Given that path, this story runner will automatically provide it
-with the following step groups:
+  stories/steps/logging_in.rb
+  stories/steps/feature.rb
+  stories/steps/feature/topic.rb
+
+Given the path <tt>stories/stories/feature/topic.story</tt>, this
+story runner will automatically provide it with the following step
+groups when run:
 
   feature, topic, feature/topic
 
 If these step groups are defined within a file loaded by your
-story helper file (stories/helper.rb), they will automatically be
-included and work as expected.
+story helper file (stories/helper.rb), or in a file autoloaded when
+automatically loading step groups with logical names, they will
+be made available to the story.
+
+To be clear, the file <tt>stories/steps/feature/topic.rb</tt> might
+contain something like:
+
+  steps_for('feature/topic') do
+    Given('...') do ... end
+  end
 
 
 == Command line usage
