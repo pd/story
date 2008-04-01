@@ -34,7 +34,7 @@ class StoryCommand
   end
 
   def clean_story_paths(paths)
-    paths.map! { |path| File.expand_path(path) }
+    paths = paths.map { |path| File.expand_path(path) }
     paths.map! { |path| path.gsub(/\.story$/, "") }
     paths.map! { |path| path.gsub(/#{STORIES_PATH}\//, "") }
   end
