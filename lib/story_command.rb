@@ -91,7 +91,8 @@ class StoryCommand
     if @args.empty?
       run_story_files(all_story_files)
     else
-      run_story_files(@args)
+      stories = @args.map { |arg| stories_beneath(arg) }.flatten
+      run_story_files(stories)
     end
   end
 
@@ -99,59 +100,56 @@ class StoryCommand
     Dir["#{story_store}/**/*.story"].uniq
   end
 
+  def stories_beneath(path)
+    File.directory?(path) ? Dir.glob(File.join(path, '**', '*.story')) : [path]
+  end
+
   def using_rails?
     options[:rails]
   end
 
-  # what's the point of this?
-  # we then go *back* through and reconstruct the paths later, possibly incorrectly.
-  def clean_story_paths(paths)
-    paths = paths.map { |path| File.expand_path(path) }
-    paths.map! { |path| File.directory?(path) ? Dir.glob("#{path}/**/*.story") : path }
-    paths.flatten!
-    paths.map! { |path| path.gsub(/\.story$/, "") }
-    paths.map! { |path| path.gsub(/#{story_store}\//, "") }
+  def map_story_paths_to_names(paths)
+    names = paths.map { |p| File.expand_path(p) }
+    names.map! { |name| name.gsub(/\.story$/, '').gsub(%r[#{story_store}/], '') }
+    paths.zip(names)
   end
 
-  def run_story_files(stories)
-    clean_story_paths(stories).each do |story|
-      setup_and_run_story(File.readlines("#{story_store}/#{story}.story"), story)
+  def run_story_files(files)
+    map_story_paths_to_names(files).each do |file, story_name|
+      setup_and_run_story(file, story_name)
     end
   end
 
-  def setup_and_run_story(lines, story_name = nil)
+  def setup_and_run_story(story_file, story_name)
     require(story_helper)
 
-    steps = steps_for_story(lines, story_name)
-    files = steps.map do |step|
+    steps = steps_for_story(story_file, story_name)
+
+    step_files_to_load = steps.map do |step|
       options[:steps_path].map { |path| "#{path}/#{step}.rb" }
     end.flatten.compact
-    files.select { |file| File.exist?(file) }.each { |file| require file }
+    step_files_to_load.select { |file| File.exist?(file) }.each { |file| require file }
 
-    run_story(lines, steps)
+    run_story(story_file, steps)
   end
 
-  def steps_for_story(lines, story_name)
+  def steps_for_story(file, story_name)
     steps  = [story_name, story_name.to_s.split('/')]
     steps += options[:global_steps]
-    if lines.first =~ /^# \+?steps: /
-      steps << lines.first.gsub(/^# \+?steps: /, '').split(',').map { |x| x.strip }
+
+    first_line = File.open(file) { |f| f.readline }
+    if first_line =~ /^# \+?steps: /
+      steps << first_line.gsub(/^# \+?steps: /, '').split(',').map { |x| x.strip }
     end
+
     steps = steps.uniq.flatten
     steps += steps.map { |step| step.to_sym }
   end
 
-  def run_story(lines, steps)
-    tempfile = Tempfile.new("story")
-    lines.each do |line|
-      tempfile.puts line
-    end
-    tempfile.close
-
-    steps += steps.map { |step| step.to_sym }
+  def run_story(file, steps)
     story_type = using_rails? ? RailsStory : nil
     with_steps_for(*steps) do
-      run tempfile.path, :type => story_type
+      run file, :type => story_type
     end
   end
 
