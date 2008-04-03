@@ -89,19 +89,19 @@ class StoryCommand
 
   def run
     if @args.empty?
-      run_story_files(all_story_files)
+      run_story_files(stories_beneath(story_store))
     else
       stories = @args.map { |arg| stories_beneath(arg) }.flatten
       run_story_files(stories)
     end
   end
 
-  def all_story_files
-    Dir["#{story_store}/**/*.story"].uniq
-  end
-
   def stories_beneath(path)
-    File.directory?(path) ? Dir.glob(File.join(path, '**', '*.story')) : [path]
+    if File.directory?(path)
+      Dir.glob(File.join(path, '**', '*.story')).uniq
+    else
+      [path]
+    end
   end
 
   def using_rails?
