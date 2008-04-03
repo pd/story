@@ -88,9 +88,7 @@ class StoryCommand
   end
 
   def run
-    if @args.empty? && first_char = using_stdin?
-      setup_and_run_story((first_char + STDIN.read).split("\n"))
-    elsif @args.empty?
+    if @args.empty?
       run_story_files(all_story_files)
     else
       run_story_files(@args)
@@ -99,16 +97,6 @@ class StoryCommand
 
   def all_story_files
     Dir["#{story_store}/**/*.story"].uniq
-  end
-
-  def using_stdin?
-    char = nil
-    begin
-      char = STDIN.read_nonblock(1)
-    rescue Errno::EAGAIN
-      return false
-    end
-    return char
   end
 
   def using_rails?
