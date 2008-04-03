@@ -91,7 +91,7 @@ class StoryCommand
     if @args.empty?
       run_story_files(stories_beneath(story_store))
     else
-      stories = @args.map { |arg| stories_beneath(arg) }.flatten
+      stories = @args.map { |arg| stories_beneath(arg) }.flatten.uniq
       run_story_files(stories)
     end
   end
