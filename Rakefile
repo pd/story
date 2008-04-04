@@ -23,3 +23,8 @@ end
 
 Rake::GemPackageTask.new(gemspec) do |spec|
 end
+
+desc "force a rebuild and install the gem"
+task :reinstall => :repackage do
+  `gem install pkg/story-#{gemspec.version}.gem`
+end
