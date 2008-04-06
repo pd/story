@@ -73,6 +73,18 @@ describe StoryCommand, 'step group name inference:' do
     sc.should_receive(:run_story).with('foo/bar.story', ['foo', 'bar', 'foo/bar'], nil)
     sc.run
   end
+
+  it "should strip the story-dir path from the front of the filename when inferring steps" do
+    sc = neutered_story_command %w(stories/stories/a/b.story)
+    sc.should_receive(:run_story).with('stories/stories/a/b.story', %w(a b a/b), nil)
+    sc.run
+  end
+
+  it "should strip a custom story-dir path from the front of the filename" do
+    sc = neutered_story_command %w(-S story/stories story/stories/foo/bar.story)
+    sc.should_receive(:run_story).with('story/stories/foo/bar.story', %w(foo bar foo/bar), nil)
+    sc.run
+  end
 end
 
 describe StoryCommand, 'global step groups:' do

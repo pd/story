@@ -15,6 +15,7 @@ module StoryCommand
     def default_options
       { :rails => false,
         :step_groups => [],
+        :story_dir => 'stories/stories',
         :helper_file => 'stories/helper.rb'
       }
     end
@@ -27,6 +28,9 @@ module StoryCommand
       end
       on('-s', '--step-group NAME', 'Defines a step group to be provided to all stories') do |name|
         @options[:step_groups] << name
+      end
+      on('-S', '--story-dir DIR', 'Sets the directory from which .story files are loaded (default: stories/stories)') do |dir|
+        @options[:story_dir] = dir
       end
       on('-H', '--helper-file FILE', 'Specifies the helper file to load (default: stories/helper.rb)') do |file|
         @options[:helper_file] = file
@@ -57,10 +61,14 @@ module StoryCommand
 
       stories.each do |story|
         steps  = global_step_groups.dup
-        steps += steps_from_story_name(story)
+        steps += steps_from_story_name(story_name_from_path(story))
         steps += steps_from_story_contents(story)
         run_story(story, steps, using_rails? ? RailsStory : nil)
       end
+    end
+
+    def story_name_from_path(path)
+      path.sub('.story', '').sub(/^.*?#{Regexp.escape(@options[:story_dir])}\//, '')
     end
 
     def steps_from_story_name(name)
@@ -89,7 +97,7 @@ module StoryCommand
 
     # Assume it works.
     def run_story(file, steps, type)
-      with_steps_for(steps) do
+      with_steps_for(*steps) do
         run file, :type => type
       end
     end
