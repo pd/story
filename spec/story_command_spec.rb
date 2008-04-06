@@ -149,3 +149,30 @@ describe StoryCommand, 'rails interop:' do
     sc.run
   end
 end
+
+describe StoryCommand, 'options file support:' do
+  it "should treat the -O / --options flags are specifying the options file to load" do
+    IO.should_receive(:readlines).with('a-different-story.opts').and_return(["-s\n", "b\n", "-s\n", "c\n"])
+    sc = neutered_story_command %w(-O a-different-story.opts a.story)
+    sc.should_receive(:run_story).with('a.story', include('b', 'c'), nil)
+    sc.run
+  end
+
+  it "should load the default file specified given when the StoryCommand was constructed" do
+    IO.should_receive(:readlines).and_return(["-s\n", "foo\n", "-s\n", "bar\n"])
+    sc = neutered_story_command %w(a.story), 'stories/story.opts'
+    sc.run
+  end
+
+  it "should treat options following the '--' line as options to be passed to rspec" do
+    IO.should_receive(:readlines).and_return(["-s\n", "foo\n", "--\n", "--colour"])
+    sc = neutered_story_command %w(-O opts)
+    sc.rspec_options.should == %w(--colour)
+  end
+
+  it "should set ARGV to the expected rspec options before running stories" do
+    IO.should_receive(:readlines).and_return(["--\n", "--colour\n", "--format\n", "html\n"])
+    sc = neutered_story_command %w(-O opts)
+    ARGV.should == %w(--colour --format html)
+  end
+end
