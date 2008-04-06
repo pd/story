@@ -28,3 +28,11 @@ desc "force a rebuild and install the gem"
 task :reinstall => :repackage do
   `gem install pkg/story-#{gemspec.version}.gem`
 end
+
+desc "Make sure everything is green"
+task :aok do
+  system('spec spec')
+  exit(1) unless $?.success?
+  system('./bin/story')
+  exit(1) unless $?.success?
+end

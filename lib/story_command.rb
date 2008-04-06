@@ -1,3 +1,4 @@
+require 'English'
 require 'optparse'
 
 # ganked from facets
@@ -15,170 +16,134 @@ module Enumerable
   end
 end
 
-class StoryCommand
-  class OptionParser < ::OptionParser
-    attr_reader :options
+module StoryCommand
+  class << self
+    # see Engine.
+    def new(*args)
+      Engine.new(*args)
+    end
+  end
 
-    OPTIONS = {
-      :rails => ['-R', '--rails', 'Run stories as type RailsStory'],
-      :global_steps => ['-g', '--global-steps STEPS', 'Comma separated list of step groups to always include'],
-      :steps => ['-s', '--steps-path PATH', 'Add a path to the list of directories to load step groups from'],
-      :options_file => ['-O', '--options PATH', 'Read options from a file']
-    }
+  class OptionParser < ::OptionParser
+    attr_accessor :options
 
     def default_options
       { :rails => false,
-        :steps_path => ["#{Dir.pwd}/stories/steps"],
-        :global_steps => [],
+        :step_groups => [],
+        :story_dir => 'stories/stories',
+        :helper_file => 'stories/helper.rb',
         :rspec_options => []
       }
     end
 
     def initialize
-      super()
-
+      super
       @options = default_options
-
-      self.banner = 'Usage: story [options] (DIR|FILE|GLOB)'
-      self.separator ''
-
-      on(*OPTIONS[:rails]) { @options[:rails] = true }
-      on(*OPTIONS[:global_steps]) do |names|
-        @options[:global_steps] ||= []
-        @options[:global_steps] += names.split(',').map { |x| x.strip }
+      on('-R', '--[no-]rails', 'Run stories as type RailsStory') do |bool|
+        @options[:rails] = bool
       end
-      on(*OPTIONS[:steps]) do |path|
-        @options[:steps_path] ||= []
-        @options[:steps_path] << path
+      on('-s', '--step-group NAME', 'Defines a step group to be provided to all stories') do |name|
+        @options[:step_groups] << name
       end
-      on(*OPTIONS[:options_file]) do |path|
-        lines = IO.readlines(path).map { |l| l.chomp }
-        ours, @options[:rspec_options] = lines.split('--')
-        @argv.unshift(*ours)
+      on('-S', '--story-dir DIR', 'Sets the directory from which .story files are loaded (default: stories/stories)') do |dir|
+        @options[:story_dir] = dir
+      end
+      on('-H', '--helper-file PATH', 'The path to the helper file to load (default: stories/helper.rb)') do |path|
+        @options[:helper_file] = path
+      end
+      on('-O', '--options PATH', 'The path to a story.opts to load (default: stories/story.opts)') do |path|
+        begin
+          lines = IO.readlines(path).map { |l| l.chomp }
+          opts, rspec_opts = lines.split('--')
+          @options[:rspec_options].push *rspec_opts
+          order(*opts)
+        rescue
+        end
       end
     end
-
-    def order!(argv, &blk)
-      @argv = argv
-      super(@argv)
-      @options
-    end
-  end
-end
-
-class StoryCommand
-  attr_reader :project_root
-  attr_reader :options
-
-  def initialize(args, project_root = nil)
-    @project_root = File.expand_path(project_root || Dir.pwd)
-
-    args = args.dup
-    args.unshift('-O', default_opts_path) if File.exist?(default_opts_path)
-
-    @options, @args = parse_arguments(args)
-    options[:steps_path] << step_store
-
-    # rspec's Story::Runner will parse whatever is in ARGV,
-    # so reset it and push any extra args in
-    ARGV.clear
-    unless options[:rspec_options].empty?
-      opts = options[:rspec_options]
-      ARGV.unshift(*opts)
-    end
   end
 
-  def story_root
-    File.join(project_root, 'stories')
-  end
+  # named solely due to the abundance of *Runners out there
+  class Engine
+    attr_reader :stories
+    attr_reader :rspec_options
 
-  def step_store
-    File.join(story_root, 'steps')
-  end
+    def initialize(argv, options_file = nil)
+      @argv = argv.dup
+      @argv.unshift(*['-O', options_file]) if options_file && File.exist?(options_file)
 
-  def story_store
-    File.join(story_root, 'stories')
-  end
-
-  def story_helper
-    File.join(story_root, 'helper')
-  end
-
-  def default_opts_path
-    File.join(story_root, 'story.opts')
-  end
-
-  def run
-    if @args.empty?
-      run_story_files(stories_beneath(story_store))
-    else
-      stories = @args.map { |arg| stories_beneath(arg) }.flatten.uniq
-      run_story_files(stories)
-    end
-  end
-
-  def stories_beneath(path)
-    if File.directory?(path)
-      Dir.glob(File.join(path, '**', '*.story')).uniq
-    else
-      [path]
-    end
-  end
-
-  def using_rails?
-    options[:rails]
-  end
-
-  def map_story_paths_to_names(paths)
-    names = paths.map { |p| File.expand_path(p) }
-    names.map! { |name| name.gsub(/\.story$/, '').gsub(%r[#{story_store}/], '') }
-    paths.zip(names)
-  end
-
-  def run_story_files(files)
-    map_story_paths_to_names(files).each do |file, story_name|
-      setup_and_run_story(file, story_name)
-    end
-  end
-
-  def setup_and_run_story(story_file, story_name)
-    require(story_helper)
-
-    steps = steps_for_story(story_file, story_name)
-
-    step_files_to_load = steps.map do |step|
-      options[:steps_path].map { |path| "#{path}/#{step}.rb" }
-    end.flatten.compact
-    step_files_to_load.select { |file| File.exist?(file) }.each { |file| require file }
-
-    run_story(story_file, steps)
-  end
-
-  def steps_for_story(file, story_name)
-    steps  = [story_name, story_name.to_s.split('/')]
-    steps += options[:global_steps]
-
-    first_line = File.open(file) { |f| f.readline }
-    if first_line =~ /^# \+?steps: /
-      steps << first_line.gsub(/^# \+?steps: /, '').split(',').map { |x| x.strip }
-    end
-
-    steps = steps.uniq.flatten
-    steps += steps.map { |step| step.to_sym }
-  end
-
-  def run_story(file, steps)
-    story_type = using_rails? ? RailsStory : nil
-    with_steps_for(*steps) do
-      run file, :type => story_type
-    end
-  end
-
-  private
-    def parse_arguments(args)
       parser = OptionParser.new
-      parser.order!(args)
-      [parser.options, args]
+      @argv = parser.order(@argv)
+      @options = parser.options
+
+      if @argv.empty?
+        @stories = Dir.glob('stories/stories/**/*.story')
+      else
+        @stories = @argv.map do |arg|
+          File.directory?(arg) ? Dir.glob("#{arg}/**/*.story") : arg
+        end.flatten
+      end
+
+      # coerces rspec into parsing options like --colour
+      ARGV.clear
+      ARGV.push *rspec_options
     end
 
+    def run
+      require(@options[:helper_file])
+
+      stories.each do |story|
+        steps  = global_step_groups.dup
+        steps += steps_from_story_name(story_name_from_path(story))
+        steps += steps_from_story_contents(story)
+        run_story(story, steps, using_rails? ? RailsStory : nil)
+      end
+    end
+
+    def story_name_from_path(path)
+      path.sub('.story', '').sub(/^.*?#{Regexp.escape(@options[:story_dir])}\//, '')
+    end
+
+    def steps_from_story_name(name)
+      tokens = name.sub('.story', '').split('/')
+      [ tokens,
+        (1..tokens.length-1).map { |i| tokens[0..i].join('/') }
+      ].flatten.uniq
+    end
+
+    def steps_from_story_contents(path)
+      header = read_story_header(path)
+      if header =~ /^#\s*\+steps: /
+        $POSTMATCH.chomp.split(',').map { |s| s.strip }
+      else
+        []
+      end
+    end
+
+    def global_step_groups
+      @options[:step_groups]
+    end
+
+    def rspec_options
+      @options[:rspec_options]
+    end
+
+    def using_rails?
+      @options[:rails]
+    end
+
+    # Assume it works.
+    def run_story(file, steps, type)
+      with_steps_for(*steps) do
+        run file, :type => type
+      end
+    end
+
+    # Assume it works.
+    def read_story_header(path)
+      File.open(path) { |f| f.readline }
+    rescue
+      ''
+    end
+  end
 end
