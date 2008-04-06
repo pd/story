@@ -1,3 +1,4 @@
+require 'English'
 require 'optparse'
 
 module StoryCommand
@@ -13,7 +14,8 @@ module StoryCommand
 
     def default_options
       { :rails => false,
-        :step_groups => []
+        :step_groups => [],
+        :helper_file => 'stories/helper.rb'
       }
     end
 
@@ -23,8 +25,11 @@ module StoryCommand
       on('-R', '--[no-]rails', 'Run stories as type RailsStory') do |bool|
         @options[:rails] = bool
       end
-      on('-s', '--step-group NAME', 'Define a step group to be provided to all stories') do |name|
+      on('-s', '--step-group NAME', 'Defines a step group to be provided to all stories') do |name|
         @options[:step_groups] << name
+      end
+      on('-H', '--helper-file FILE', 'Specifies the helper file to load (default: stories/helper.rb)') do |file|
+        @options[:helper_file] = file
       end
     end
   end
@@ -48,10 +53,12 @@ module StoryCommand
     end
 
     def run
+      require(@options[:helper_file])
+
       stories.each do |story|
         steps  = global_step_groups.dup
         steps += steps_from_story_name(story)
-        # steps += steps_from_contents(story)
+        steps += steps_from_story_contents(story)
         run_story(story, steps, using_rails? ? RailsStory : nil)
       end
     end
@@ -61,6 +68,15 @@ module StoryCommand
       [ tokens,
         (1..tokens.length-1).map { |i| tokens[0..i].join('/') }
       ].flatten.uniq
+    end
+
+    def steps_from_story_contents(path)
+      header = read_story_header(path)
+      if header =~ /^#\s*\+steps: /
+        $POSTMATCH.chomp.split(',').map { |s| s.strip }
+      else
+        []
+      end
     end
 
     def global_step_groups
@@ -76,6 +92,13 @@ module StoryCommand
       with_steps_for(steps) do
         run file, :type => type
       end
+    end
+
+    # Assume it works.
+    def read_story_header(path)
+      File.open(path) { |f| f.readline }
+    rescue
+      ''
     end
   end
 end
