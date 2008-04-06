@@ -1,5 +1,20 @@
 require 'optparse'
 
+# ganked from facets
+module Enumerable
+  def split(pattern)
+    memo = [[]]
+    each do |obj|
+      if pattern === obj
+        memo.push []
+      else
+        memo.last << obj
+      end
+    end
+    memo
+  end
+end
+
 class StoryCommand
   class OptionParser < ::OptionParser
     attr_reader :options
@@ -14,7 +29,8 @@ class StoryCommand
     def default_options
       { :rails => false,
         :steps_path => ["#{Dir.pwd}/stories/steps"],
-        :global_steps => []
+        :global_steps => [],
+        :rspec_options => []
       }
     end
 
@@ -36,7 +52,9 @@ class StoryCommand
         @options[:steps_path] << path
       end
       on(*OPTIONS[:options_file]) do |path|
-        parse_options_file(path)
+        lines = IO.readlines(path).map { |l| l.chomp }
+        ours, @options[:rspec_options] = lines.split('--')
+        @argv.unshift(*ours)
       end
     end
 
@@ -44,11 +62,6 @@ class StoryCommand
       @argv = argv
       super(@argv)
       @options
-    end
-
-    def parse_options_file(options_file)
-      args = IO.readlines(options_file).map { |l| l.chomp }
-      @argv.unshift(*args)
     end
   end
 end
@@ -65,6 +78,14 @@ class StoryCommand
 
     @options, @args = parse_arguments(args)
     options[:steps_path] << step_store
+
+    # rspec's Story::Runner will parse whatever is in ARGV,
+    # so reset it and push any extra args in
+    ARGV.clear
+    unless options[:rspec_options].empty?
+      opts = options[:rspec_options]
+      ARGV.unshift(*opts)
+    end
   end
 
   def story_root
