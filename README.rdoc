@@ -19,10 +19,10 @@ groups when run:
 
   feature, topic, feature/topic
 
-If these step groups are defined within a file loaded by your
-story helper file (stories/helper.rb), or in a file autoloaded when
-automatically loading step groups with logical names, they will
-be made available to the story.
+The step groups should be loaded from your helper, typically in
+stories/helper.rb with a line such as:
+
+  Dir['steps/**/*.rb'].each { |f| require f }
 
 To be clear, the file <tt>stories/steps/feature/topic.rb</tt> might
 contain something like:
@@ -31,16 +31,43 @@ contain something like:
     Given('...') do ... end
   end
 
+You are not, however, limited to this naming scheme. It could just
+as well contain:
+
+  steps_for('when topic within some feature') do ... end
+
+And, provided your stories include that step group name, the steps
+will be available.
+
 
 == Command line usage
 
 Command line arguments include:
 
-  -R: run stories as type RailsStory
-  -g: name global step groups
-  -s: add additional paths from which steps might be loaded
-  -O: specify a .opts file to load command line arguments from
-  -h: display help
+  -R, --rails
+    run stories as type RailsStory
+    default: --no-rails
+
+  -s, --step-group NAME
+    add step groups which will be provided to every story run.
+    specify multiple times to add more.
+    default: NONE
+
+  -H, --helper
+    specify the path to the story helper file to load
+    default: stories/helper.
+
+  -S, --story-dir
+    specifies the root path for your plain text stories; this
+    is stripped from path names before inferring step group names.
+    default: stories/stories
+
+  -O, --options
+    specify a .opts file to load command line arguments from
+    default: stories/story.opts is always loaded if present
+
+  -h, --help
+    display help
 
 
 == Specifying required steps inside the story
@@ -63,8 +90,10 @@ in the same manner as spec/spec.opts.
 An example story.opts for a Rails project might be:
 
   --rails
-  --global-steps
-  auth, webrat
+  --step-group
+  auth
+  --step-group
+  webrat
 
 Any lines following a line containing '--' will be passed on to rspec's
 option parser:
