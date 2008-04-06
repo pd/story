@@ -21,7 +21,7 @@ describe StoryCommand, 'story discovery:' do
     sc.stories.should == %w(stories/a.story b.story)
   end
 
-  it "should recurse through directories looking for .story files" do
+  it "should recurse through specified directories looking for .story files" do
     File.should_receive(:directory?).with('a').and_return(true)
     File.should_receive(:directory?).with('b').and_return(false)
     Dir.should_receive(:glob).with('a/**/*.story').and_return(['a/deep.story'])
@@ -38,7 +38,7 @@ describe StoryCommand, 'helper file:' do
     sc.run
   end
 
-  it "should be default to 'stories/helper.rb'" do
+  it "should default to 'stories/helper.rb'" do
     # meh see above
   end
 
@@ -151,7 +151,7 @@ describe StoryCommand, 'rails interop:' do
 end
 
 describe StoryCommand, 'options file support:' do
-  it "should treat the -O / --options flags are specifying the options file to load" do
+  it "should treat the -O / --options flags as specifying the options file to load" do
     IO.should_receive(:readlines).with('a-different-story.opts').and_return(["-s\n", "b\n", "-s\n", "c\n"])
     sc = neutered_story_command %w(-O a-different-story.opts a.story)
     sc.should_receive(:run_story).with('a.story', include('b', 'c'), nil)
