@@ -29,41 +29,48 @@ describe StoryCommand, 'step group name inference:' do
     sc = StoryCommand.new []
     sc.steps_from_story_name('foo.story').should == %w(foo)
   end
+
+  it "should return 'foo', 'bar', and 'foo/bar' for a story named 'foo/bar.story'" do
+    sc = StoryCommand.new []
+    sc.steps_from_story_name('foo/bar.story').should == %w(foo bar foo/bar)
+  end
+
+  it "should return 'foo', 'bar', 'baz', 'foo/bar', and 'foo/bar/baz' for a story named 'foo/bar/baz.story'" do
+    sc = StoryCommand.new []
+    sc.steps_from_story_name('foo/bar/baz.story').should == %w(foo bar baz foo/bar foo/bar/baz)
+  end
+
+  it "should run the story with the inferred step groups" do
+    sc = StoryCommand.new %w(foo/bar.story)
+    sc.should_receive(:run_story).with('foo/bar.story', ['foo', 'bar', 'foo/bar'], nil)
+    sc.run
+  end
 end
 
 describe StoryCommand, 'global step groups:' do
   it "should result in stories being run with their steps" do
     sc = StoryCommand.new %w(-s foo --step-group bar a.story)
-    sc.should_receive(:run_story).with('a.story', ['foo', 'bar'], nil)
+    sc.should_receive(:run_story).with('a.story', include('foo', 'bar'), nil)
     sc.run
   end
 
   it "should be empty by default" do
     sc = StoryCommand.new %w(a.story)
-    sc.should_receive(:run_story).with('a.story', [], nil)
+    sc.should_receive(:run_story).with('a.story', ['a'], nil)
     sc.run
   end
 end
 
 describe StoryCommand, 'rails interop:' do
-  it "should not operate in rails mode by default" do
-    sc = StoryCommand.new []
-    sc.should_not be_using_rails
-  end
-
-  it "should operate in rails mode when passed the --rails option" do
-    sc = StoryCommand.new %w(--rails)
-    sc.should be_using_rails
-  end
-
-  it "should explicitly disable rails mode when passed the --no-rails option" do
-    sc = StoryCommand.new %w(--rails --no-rails)
-    sc.should_not be_using_rails
+  it "should be off by default" do
+    sc = StoryCommand.new %w(a.story)
+    sc.should_receive(:run_story).with('a.story', an_instance_of(Array), nil)
+    sc.run
   end
 
   it "should result in stories being run as a RailsStory" do
     sc = StoryCommand.new %w(--rails a.story)
-    sc.should_receive(:run_story).with('a.story', [], RailsStory)
+    sc.should_receive(:run_story).with('a.story', an_instance_of(Array), RailsStory)
     sc.run
   end
 end

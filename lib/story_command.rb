@@ -50,14 +50,17 @@ module StoryCommand
     def run
       stories.each do |story|
         steps  = global_step_groups.dup
-        # steps += steps_from_story_name(story)
+        steps += steps_from_story_name(story)
         # steps += steps_from_contents(story)
         run_story(story, steps, using_rails? ? RailsStory : nil)
       end
     end
 
     def steps_from_story_name(name)
-      [name.sub('.story', '')]
+      tokens = name.sub('.story', '').split('/')
+      [ tokens,
+        (1..tokens.length-1).map { |i| tokens[0..i].join('/') }
+      ].flatten.uniq
     end
 
     def global_step_groups
