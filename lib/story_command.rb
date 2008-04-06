@@ -96,6 +96,7 @@ module StoryCommand
         steps  = global_step_groups.dup
         steps += steps_from_story_name(story_name_from_path(story))
         steps += steps_from_story_contents(story)
+        steps += steps.map { |s| s.to_sym }
         run_story(story, steps, using_rails? ? RailsStory : nil)
       end
     end
