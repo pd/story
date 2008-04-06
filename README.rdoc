@@ -66,9 +66,19 @@ An example story.opts for a Rails project might be:
   --global-steps
   auth, webrat
 
+Any lines following a line containing '--' will be passed on to rspec's
+option parser:
+
+  --rails
+  --
+  --colour
+
+Will run the stories with colours enabled. This feature is not yet
+available from the command line, and will not work on the 1.1.3 release.
+If you would like to use it, build your gem from rspec's git repository.
+
 
 == Credits
 
-Most of the file is still the original code written by Bryan Helmkamp
-and posted to the rspec-users mailing list. I've done little more than
-add some options.
+Bryan Helmkamp wrote the original version of this file, script/story,
+and posted it to the rspec-users mailing list.
