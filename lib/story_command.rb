@@ -106,7 +106,7 @@ module StoryCommand
     end
 
     def steps_from_story_name(name)
-      tokens = name.sub('.story', '').split('/')
+      tokens = name.sub('.story', '').gsub(/\/+/, '/').split('/')
       [ tokens,
         (1..tokens.length-1).map { |i| tokens[0..i].join('/') }
       ].flatten.uniq

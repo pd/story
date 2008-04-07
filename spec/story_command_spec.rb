@@ -91,6 +91,12 @@ describe StoryCommand, 'step group name inference:' do
     sc.should_receive(:run_story).with('a.story', ['a', :a], nil)
     sc.run
   end
+
+  it "should gracefully handle paths with multiple consecutive '/' characters" do
+    sc = neutered_story_command %w(feature//topic.story)
+    sc.should_receive(:run_story).with('feature//topic.story', include(*%w(feature topic feature/topic)), nil)
+    sc.run
+  end
 end
 
 describe StoryCommand, 'global step groups:' do
