@@ -4,7 +4,7 @@ require 'spec/rake/spectask'
 gemspec = Gem::Specification.new do |spec|
   spec.name = 'story'
   spec.summary = "Command line runner for rspec plain text user stories"
-  spec.version = '0.1'
+  spec.version = '0.2'
   spec.author = 'Kyle Hargraves'
   spec.email = 'philodespotos@gmail.com'
   spec.description = <<-END
