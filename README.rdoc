@@ -16,7 +16,7 @@ groups when run:
   feature, topic, feature/topic
 
 The step groups should be loaded from your helper, typically in
-stories/helper.rb with a line such as:
+<tt>stories/helper.rb</tt> with a line such as:
 
   Dir['steps/**/*.rb'].each { |f| require f }
 
@@ -51,7 +51,7 @@ Command line arguments include:
 
   -H, --helper
     specify the path to the story helper file to load
-    default: stories/helper.
+    default: stories/helper
 
   -S, --story-dir
     specifies the root path for your plain text stories; this
@@ -79,11 +79,11 @@ When run, this story will expect to have step groups named 'auth' and
 
 == Configuration file
 
-If the file stories/story.opts is present, or another file was specified
-with the command line option -O, then options are loaded from the file
-in the same manner as spec/spec.opts.
+If the file <tt>stories/story.opts</tt> is present, or another file was
+specified with the command line option -O, then options are loaded from
+the file in the same manner as <tt>spec/spec.opts</tt>.
 
-An example story.opts for a Rails project might be:
+An example <tt>story.opts</tt> for a Rails project might be:
 
   --rails
   --step-group
