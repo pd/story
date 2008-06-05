@@ -99,8 +99,7 @@ option parser:
   --colour
 
 Will run the stories with colours enabled. This feature is not yet
-available from the command line, and will not work on the 1.1.3 release.
-If you would like to use it, build your gem from rspec's git repository.
+available from the command line, and requires an rspec >= 1.1.4.
 
 
 == Credits
