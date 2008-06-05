@@ -106,9 +106,5 @@ If you would like to use it, build your gem from rspec's git repository.
 == Credits
 
 Bryan Helmkamp wrote the original version of this file, script/story,
-and posted it to the rspec-users mailing list.
-
-I realize now that I just copied the standard files into the project
-directory, including an MIT-LICENSE with my name on it. This is
-despite the fact that the initial version was 99% someone else's work.
-Sorry, I'm dumb and wasn't really thinking about the crap I packaged.
+and posted it to the rspec-users mailing list. He gave his okay for
+the MIT license this thing rocks.
