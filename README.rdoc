@@ -1,5 +1,9 @@
 = story
 
+<b>Unless you are still using the now deprecated rspec story runner,
+this project is useless to you. Cucumber's command line interface is more
+than sufficient to do most of what this project provided.</b>
+
 This project provides an executable, named +story+, that can be
 used to run suites of rspec plain text user stories.
 
